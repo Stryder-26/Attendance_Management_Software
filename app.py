@@ -120,11 +120,9 @@ def ensure_templates():
             with open(path, 'w', encoding='utf-8') as f: f.write(content)
 
 # --- App Initialization Block ---
-# This block runs when the app is imported by Gunicorn on the server
 with app.app_context():
     ensure_templates()
     db.create_all()
-    # Create a default admin user if one doesn't exist
     if not User.query.filter_by(email='admin@example.com').first():
         print("Creating default admin user...")
         admin = User(name="Super Admin", email="admin@example.com", role='admin')
