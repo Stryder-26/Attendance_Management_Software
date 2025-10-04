@@ -1,5 +1,5 @@
 """
-AMS Flask Starter - app.py (with Sorted Reports)
+AMS Flask Starter - app.py (Production-Ready for PostgreSQL)
 """
 import os
 import csv
@@ -16,7 +16,13 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user,
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a-very-secret-key-that-is-long-and-secure')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'ams.db')
+
+# --- Database Configuration ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///' + os.path.join(BASE_DIR, 'ams.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -104,14 +110,32 @@ def ensure_templates():
         'manage_department.html': """{% extends 'base.html' %}{% block content %}<h3>Department: {{ department.name }}</h3><a class="btn btn-primary mb-2" href="{{ url_for('create_class', department_id=department.id) }}">Add Class</a><ul class="list-group">{% for cl in department.classes %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ cl.name }} <small class="text-muted">— Teacher: {{ cl.teacher.name if cl.teacher else 'N/A' }}</small><div><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manage_class', class_id=cl.id) }}">Open</a></div></li>{% else %}<li class="list-group-item">No classes yet.</li>{% endfor %}</ul>{% endblock %}""",
         'create_class.html': """{% extends 'base.html' %}{% block content %}<h3>Create Class in {{ department.name }}</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="Class name" required></div><div class="mb-3"><label class="form-label">Assign Teacher</label><select name="teacher_id" class="form-select"><option value="">-- Unassigned --</option>{% for teacher in teachers %}<option value="{{ teacher.id }}">{{ teacher.name }}</option>{% endfor %}</select></div><button type="submit" class="btn btn-success">Create</button></form>{% endblock %}""",
         'manage_class.html': """{% extends 'base.html' %}{% block content %}<h3>Class: {{ cl.name }}</h3>{% if cl.teacher %}<p>Teacher: <strong>{{ cl.teacher.name }}</strong></p>{% endif %}<a class="btn btn-primary mb-2" href="{{ url_for('add_student', class_id=cl.id) }}">Add Students</a> <a class="btn btn-secondary mb-2" href="{{ url_for('attendance_panel', class_id=cl.id) }}">Open Attendance Panel</a> <a class="btn btn-info mb-2" href="{{ url_for('class_report', class_id=cl.id) }}">View Report</a><h5>Students</h5><ul class="list-group">{% for s in cl.students %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ s.name }}<form method="post" action="{{ url_for('delete_student', student_id=s.id) }}" onsubmit="return confirm('Remove student?');"><button type="submit" class="btn btn-sm btn-outline-danger">Remove</button></form></li>{% else %}<li class="list-group-item">No students yet.</li>{% endfor %}</ul>{% endblock %}""",
-        'add_student.html': """{% extends 'base.html' %}{% block content %}<h3>Add Students to {{ cl.name }}</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="Student full name"></div><div class="mb-3"><input class="form-control" name="enroll" placeholder="Enrollment no (optional)"></div><button type="submit" name="submit_manual" class="btn btn-success">Add Manually</button></form><hr><h5>Or Upload a File</h5><p>Upload a CSV or Excel file with columns: code>name, enrollment_no</code></p><form method="post" enctype="multipart/form-data"><input type="file" name="file" class="form-control"><button type="submit" name="submit_file" class="btn btn-primary mt-2">Upload File</button></form>{% endblock %}""",
-        'attendance_panel.html': """{% extends 'base.html' %}{% block content %}<h3>Attendance — {{ cl.name }} — {{ date }}</h3><form method="post"><table class="table"><thead><tr><th>Name</th><th>Present</th></tr></thead><tbody>{% for s in cl.students %}<tr><td>{{ s.name }}</td><td><input type="checkbox" name="present_{{ s.id }}" value="1" class="form-check-input"></td></tr>{% endfor %}</tbody></table><button class="btn btn-success">Save Attendance</button></form>{% endblock %}""",
+        'add_student.html': """{% extends 'base.html' %}{% block content %}<h3>Add Students to {{ cl.name }}</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="Student full name"></div><div class="mb-3"><input class="form-control" name="enroll" placeholder="Enrollment no (optional)"></div><button type="submit" name="submit_manual" class="btn btn-success">Add Manually</button></form><hr><h5>Or Upload a File</h5><p>Upload a CSV or Excel file with columns: <code>name, enrollment_no</code></p><form method="post" enctype="multipart/form-data"><input type="file" name="file" class="form-control"><button type="submit" name="submit_file" class="btn btn-primary mt-2">Upload File</button></form>{% endblock %}""",
+        'attendance_panel.html': """{% extends 'base.html' %}{% block content %}<h3>Attendance — {{ cl.name }} — {{ date }}</h3><form method="post"><table class="table"><thead><tr><th>Name</th><th>Present</th></tr></thead><tbody>{% for s in cl.students %}<tr><td>{{ s.name }}</td><td><input type="checkbox" name="present_{{ s.id }}" value="1" class="form-check-input" checked></td></tr>{% endfor %}</tbody></table><button class="btn btn-success">Save Attendance</button></form>{% endblock %}""",
         'class_report.html': """{% extends 'base.html' %}{% block content %}<h3>Attendance Report for {{ cl.name }}</h3><p>Total attendance days recorded: <strong>{{ report.total_days }}</strong></p><a class="btn btn-success mb-3" href="{{ url_for('export_class_report', class_id=cl.id) }}">Export Full Report (CSV)</a><table class="table table-striped"><thead><tr><th>Student Name</th><th>Enrollment No.</th><th>Days Attended</th><th>Attendance %%</th></tr></thead><tbody>{% for student_stat in report.student_stats %}<tr><td>{{ student_stat.name }}</td><td>{{ student_stat.enrollment_no or 'N/A' }}</td><td>{{ student_stat.days_attended }}</td><td>{{ "%.2f"|format(student_stat.percentage) }}%%</td></tr>{% else %}<tr><td colspan="4" class="text-center">No attendance records found for this class.</td></tr>{% endfor %}</tbody></table>{% endblock %}"""
     }
     for fname, content in files.items():
-        path = os.path.join(TEMPLATES_FOLDER, fname)
+        path = os.path.join(BASE_DIR, 'templates', fname)
         if not os.path.exists(path):
             with open(path, 'w', encoding='utf-8') as f: f.write(content)
+
+# --- App Initialization Block ---
+# This block runs when the app is imported by Gunicorn on the server
+with app.app_context():
+    ensure_templates()
+    db.create_all()
+    # Create a default admin user if one doesn't exist
+    if not User.query.filter_by(email='admin@example.com').first():
+        print("Creating default admin user...")
+        admin = User(name="Super Admin", email="admin@example.com", role='admin')
+        admin.set_password("admin123")
+        db.session.add(admin)
+        db.session.commit()
+        print("--- Default Admin Credentials ---")
+        print("  Email: admin@example.com")
+        print("  Password: admin123")
+        print("---------------------------------")
+
 
 # ----------------------
 # Auth & Registration Routes
@@ -283,7 +307,6 @@ def add_student(class_id):
     cl = db.session.get(ClassRoom, class_id)
     if current_user.college_id != cl.department.college_id: abort(403)
     if request.method == 'POST':
-        # Check which button was pressed
         if 'submit_file' in request.form:
             if 'file' not in request.files or request.files['file'].filename == '':
                 flash('No file selected for upload.', 'warning')
@@ -293,7 +316,7 @@ def add_student(class_id):
                 try:
                     if file.filename.endswith('.csv'):
                         df = pd.read_csv(file.stream)
-                    else:  # Handle .xlsx, .xls
+                    else:
                         df = pd.read_excel(file.stream)
                     
                     df.columns = [c.lower().strip().replace(' ', '_') for c in df.columns]
@@ -314,7 +337,6 @@ def add_student(class_id):
             else:
                 flash('Invalid file type. Please upload a CSV or Excel file.', 'danger')
                 return redirect(request.url)
-
         elif 'submit_manual' in request.form:
             name = request.form.get('name', '').strip()
             if name:
@@ -325,9 +347,7 @@ def add_student(class_id):
             else:
                 flash('Please enter a name for the student.', 'warning')
             return redirect(url_for('manage_class', class_id=class_id))
-            
     return render_template('add_student.html', cl=cl)
-
 
 @app.route('/student/<int:student_id>/delete', methods=['POST'])
 @login_required
@@ -372,7 +392,6 @@ def calculate_class_report(class_id):
             'days_attended': days_attended,
             'percentage': percentage
         })
-    # Sort the results alphabetically by student name
     sorted_stats = sorted(student_stats, key=lambda x: x['name'])
     return {'total_days': total_days, 'student_stats': sorted_stats}
 
@@ -410,20 +429,8 @@ def export_class_report(class_id):
     )
     
 # ----------------------
-# Run
+# Run (for local development only)
 # ----------------------
 if __name__ == '__main__':
-    with app.app_context():
-        ensure_templates()
-        db.create_all()
-        if not User.query.filter_by(email='admin@example.com').first():
-            print("Creating default admin user...")
-            admin = User(name="Super Admin", email="admin@example.com", role='admin')
-            admin.set_password("admin123")
-            db.session.add(admin)
-            db.session.commit()
-            print("--- Default Admin Credentials ---")
-            print("  Email: admin@example.com")
-            print("  Password: admin123")
-            print("---------------------------------")
     app.run(debug=True)
+
