@@ -136,7 +136,6 @@ with app.app_context():
         print("  Password: admin123")
         print("---------------------------------")
 
-
 # ----------------------
 # Auth & Registration Routes
 # ----------------------
@@ -318,7 +317,6 @@ def add_student(class_id):
                         df = pd.read_csv(file.stream)
                     else:
                         df = pd.read_excel(file.stream)
-                    
                     df.columns = [c.lower().strip().replace(' ', '_') for c in df.columns]
                     added_count = 0
                     for index, row in df.iterrows():
