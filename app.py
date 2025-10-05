@@ -6,25 +6,42 @@ import csv
 from io import StringIO, BytesIO
 from datetime import date
 import pandas as pd
-from flask import (Flask, render_template, request, redirect, url_for, flash, abort, send_file)
+from flask import (
+    Flask, render_template, request, redirect, url_for,
+    flash, abort, send_file
+)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import (LoginManager, UserMixin, login_user, logout_user,
-                         login_required, current_user)
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user,
+    login_required, current_user
+)
 
 # --- App Setup ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a-very-secret-key-that-is-long-and-secure')
+app.config['SECRET_KEY'] = os.environ.get(
+    'SECRET_KEY',
+    'a-very-secret-key-that-is-long-and-secure'
+)
 
 # --- Database Configuration ---
+# Render automatically provides DATABASE_URL environment variable
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
+# Fix for SQLAlchemy’s URI format (Render sometimes uses 'postgres://' prefix)
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///' + os.path.join(BASE_DIR, 'ams.db')
+# Fallback to local SQLite if DATABASE_URL isn’t set
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    DATABASE_URL or f"sqlite:///{os.path.join(BASE_DIR, 'ams.db')}"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize SQLAlchemy
 db = SQLAlchemy(app)
+
 
 # --- Login Manager Setup ---
 login_manager = LoginManager()
@@ -429,5 +446,6 @@ def export_class_report(class_id):
 # ----------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
