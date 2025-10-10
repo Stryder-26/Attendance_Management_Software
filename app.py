@@ -1,47 +1,37 @@
 """
-AMS Flask Starter - app.py (Production-Ready for PostgreSQL)
+AMS Flask Starter - app.py (Final Version for Packaged Executable)
 """
 import os
+import sys
 import csv
+import webbrowser
+from threading import Timer
 from io import StringIO, BytesIO
 from datetime import date
 import pandas as pd
-from flask import (
-    Flask, render_template, request, redirect, url_for,
-    flash, abort, send_file
-)
+from flask import (Flask, render_template, request, redirect, url_for, flash, abort, send_file)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import (
-    LoginManager, UserMixin, login_user, logout_user,
-    login_required, current_user
-)
+from flask_login import (LoginManager, UserMixin, login_user, logout_user,
+                         login_required, current_user)
 
 # --- App Setup ---
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get(
-    'SECRET_KEY',
-    'a-very-secret-key-that-is-long-and-secure'
-)
+# This smart path detection is crucial for the packaged executable
+if getattr(sys, 'frozen', False):
+    # If running as a bundled executable, the base is a temporary folder
+    # Flask needs to know where to find the templates, which PyInstaller will unpack.
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    app = Flask(__name__, template_folder=template_folder)
+    BASE_DIR = os.path.dirname(sys.executable) # For the database file
+else:
+    # If running as a normal script, use the script's directory
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    app = Flask(__name__)
 
-# --- Database Configuration ---
-# Render automatically provides DATABASE_URL environment variable
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-# Fix for SQLAlchemy’s URI format (Render sometimes uses 'postgres://' prefix)
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# Fallback to local SQLite if DATABASE_URL isn’t set
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    DATABASE_URL or f"sqlite:///{os.path.join(BASE_DIR, 'ams.db')}"
-)
+app.config['SECRET_KEY'] = 'a-very-secret-key-that-is-long-and-secure-for-offline'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'ams.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Initialize SQLAlchemy
 db = SQLAlchemy(app)
-
 
 # --- Login Manager Setup ---
 login_manager = LoginManager()
@@ -105,40 +95,14 @@ class Attendance(db.Model):
     status = db.Column(db.String(10), nullable=False)
 
 # ----------------------
-# Helpers & Template Generation
+# Helpers
 # ----------------------
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in {'csv', 'xlsx', 'xls'}
 
-def ensure_templates():
-    TEMPLATES_FOLDER = os.path.join(BASE_DIR, 'templates')
-    os.makedirs(TEMPLATES_FOLDER, exist_ok=True)
-    files = {
-        'base.html': """<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AMS</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="p-3 bg-light"><div class="container"><nav class="navbar navbar-expand-lg navbar-light bg-white rounded mb-3 shadow-sm"><div class="container-fluid"><a class="navbar-brand" href="{{ url_for('index') }}">AMS Portal</a><div class="collapse navbar-collapse"><ul class="navbar-nav ms-auto">{% if current_user.is_authenticated %}<li class="nav-item"><span class="navbar-text me-3">Welcome, {{ current_user.name }} ({{ current_user.role.replace('_', ' ')|title }})!</span></li><li class="nav-item"><a class="btn btn-outline-danger" href="{{ url_for('logout') }}">Logout</a></li>{% else %}<li class="nav-item"><a class="btn btn-outline-primary" href="{{ url_for('login') }}">Login</a></li>{% endif %}</ul></div></div></nav>{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category or 'info' }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}{% block content %}{% endblock %}</div></body></html>""",
-        'login.html': """{% extends 'base.html' %}{% block content %}<div class="row justify-content-center"><div class="col-md-6 col-lg-4"><div class="card shadow"><div class="card-body"><h3 class="card-title text-center mb-4">Login</h3><form method="post"><div class="mb-3"><label for="email" class="form-label">Email address</label><input type="email" class="form-control" name="email" id="email" required></div><div class="mb-3"><label for="password" class="form-label">Password</label><input type="password" class="form-control" name="password" id="password" required></div><div class="d-grid"><button type="submit" class="btn btn-primary">Login</button></div></form></div></div></div></div>{% endblock %}""",
-        'force_credential_change.html': """{% extends 'base.html' %}{% block content %}<div class="row justify-content-center"><div class="col-md-6"><div class="card shadow-sm"><div class="card-body"><h3>Mandatory Credential Change</h3><p class="text-muted">For security, you must change the default administrator login ID and password before you can proceed.</p><form method="post"><div class="mb-3"><label class="form-label">New Email (Login ID)</label><input type="email" name="new_email" class="form-control" required></div><div class="mb-3"><label class="form-label">New Password</label><input type="password" name="new_password" class="form-control" required></div><div class="mb-3"><label class="form-label">Confirm New Password</label><input type="password" name="confirm_password" class="form-control" required></div><button type="submit" class="btn btn-primary">Set New Credentials</button></form></div></div></div></div>{% endblock %}""",
-        'index.html': """{% extends 'base.html' %}{% block content %}{% if current_user.role == 'admin' %}<h2>Super Admin Dashboard</h2><a class="btn btn-primary mb-3" href="{{ url_for('create_college') }}">Create College</a> <a class="btn btn-success mb-3" href="{{ url_for('register_college_admin') }}">Register College Admin</a><h4>Colleges</h4><ul class="list-group">{% for c in colleges %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ c.name }}<form method="post" action="{{ url_for('delete_college', college_id=c.id) }}" onsubmit="return confirm('DELETE COLLEGE? This is irreversible.');"><button type="submit" class="btn btn-sm btn-danger">Remove</button></form></li>{% else %}<li class="list-group-item">No colleges created yet.</li>{% endfor %}</ul>{% elif current_user.role == 'college_admin' %}<h2>{{ current_user.college.name }} Admin Dashboard</h2><a class="btn btn-primary mb-3" href="{{ url_for('create_department') }}">Add Department</a> <a class="btn btn-success mb-3" href="{{ url_for('register_teacher') }}">Register Teacher</a><h4>Departments</h4><ul class="list-group">{% for dept in departments %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ dept.name }}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manage_department', department_id=dept.id) }}">Manage</a></li>{% else %}<li class="list-group-item">No departments in your college.</li>{% endfor %}</ul>{% elif current_user.role == 'teacher' %}<h2>{{ current_user.college.name }} Teacher Dashboard</h2><p>You are assigned to the <strong>{{ current_user.department.name }}</strong> department.</p><p>Select a class below to manage.</p><ul class="list-group">{% for cl in classes %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ cl.name }}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manage_class', class_id=cl.id) }}">Open</a></li>{% else %}<li class="list-group-item">You are not assigned to any classes yet.</li>{% endfor %}</ul>{% endif %}{% endblock %}""",
-        'create_college.html': """{% extends 'base.html' %}{% block content %}<h3>Create College</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="College name" required></div><button class="btn btn-success">Create</button></form>{% endblock %}""",
-        'register_college_admin.html': """{% extends 'base.html' %}{% block content %}<h3>Register New College Admin</h3><form method="post"><div class="mb-3"><label class="form-label">Admin's Name</label><input class="form-control" name="name" required></div><div class="mb-3"><label class="form-label">Admin's Email</label><input type="email" class="form-control" name="email" required></div><div class="mb-3"><label class="form-label">Password</label><input type="password" class="form-control" name="password" required></div><div class="mb-3"><label class="form-label">Assign to College</label><select name="college_id" class="form-select" required><option value="">-- Select College --</option>{% for college in colleges %}<option value="{{ college.id }}">{{ college.name }}</option>{% endfor %}</select></div><button type="submit" class="btn btn-success">Register Admin</button></form>{% endblock %}""",
-        'register_teacher.html': """{% extends 'base.html' %}{% block content %}<h3>Register New Teacher in {{ current_user.college.name }}</h3><form method="post"><div class="mb-3"><label class="form-label">Teacher's Name</label><input class="form-control" name="name" required></div><div class="mb-3"><label class="form-label">Teacher's Email</label><input type="email" class="form-control" name="email" required></div><div class="mb-3"><label class="form-label">Password</label><input type="password" class="form-control" name="password" required></div><div class="mb-3"><label class="form-label">Assign to Department</label><select name="department_id" class="form-select" required><option value="">-- Select Department --</option>{% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}</select></div><button type="submit" class="btn btn-success">Register Teacher</button></form>{% endblock %}""",
-        'create_department.html': """{% extends 'base.html' %}{% block content %}<h3>Create Department in {{ current_user.college.name }}</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="Department name" required></div><button type="submit" class="btn btn-success">Create</button></form>{% endblock %}""",
-        'manage_department.html': """{% extends 'base.html' %}{% block content %}<h3>Department: {{ department.name }}</h3><a class="btn btn-primary mb-2" href="{{ url_for('create_class', department_id=department.id) }}">Add Class</a><ul class="list-group">{% for cl in department.classes %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ cl.name }} <small class="text-muted">— Teacher: {{ cl.teacher.name if cl.teacher else 'N/A' }}</small><div><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manage_class', class_id=cl.id) }}">Open</a></div></li>{% else %}<li class="list-group-item">No classes yet.</li>{% endfor %}</ul>{% endblock %}""",
-        'create_class.html': """{% extends 'base.html' %}{% block content %}<h3>Create Class in {{ department.name }}</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="Class name" required></div><div class="mb-3"><label class="form-label">Assign Teacher</label><select name="teacher_id" class="form-select"><option value="">-- Unassigned --</option>{% for teacher in teachers %}<option value="{{ teacher.id }}">{{ teacher.name }}</option>{% endfor %}</select></div><button type="submit" class="btn btn-success">Create</button></form>{% endblock %}""",
-        'manage_class.html': """{% extends 'base.html' %}{% block content %}<h3>Class: {{ cl.name }}</h3>{% if cl.teacher %}<p>Teacher: <strong>{{ cl.teacher.name }}</strong></p>{% endif %}<a class="btn btn-primary mb-2" href="{{ url_for('add_student', class_id=cl.id) }}">Add Students</a> <a class="btn btn-secondary mb-2" href="{{ url_for('attendance_panel', class_id=cl.id) }}">Open Attendance Panel</a> <a class="btn btn-info mb-2" href="{{ url_for('class_report', class_id=cl.id) }}">View Report</a><h5>Students</h5><ul class="list-group">{% for s in cl.students %}<li class="list-group-item d-flex justify-content-between align-items-center">{{ s.name }}<form method="post" action="{{ url_for('delete_student', student_id=s.id) }}" onsubmit="return confirm('Remove student?');"><button type="submit" class="btn btn-sm btn-outline-danger">Remove</button></form></li>{% else %}<li class="list-group-item">No students yet.</li>{% endfor %}</ul>{% endblock %}""",
-        'add_student.html': """{% extends 'base.html' %}{% block content %}<h3>Add Students to {{ cl.name }}</h3><form method="post"><div class="mb-3"><input class="form-control" name="name" placeholder="Student full name"></div><div class="mb-3"><input class="form-control" name="enroll" placeholder="Enrollment no (optional)"></div><button type="submit" name="submit_manual" class="btn btn-success">Add Manually</button></form><hr><h5>Or Upload a File</h5><p>Upload a CSV or Excel file with columns: <code>name, enrollment_no</code></p><form method="post" enctype="multipart/form-data"><input type="file" name="file" class="form-control"><button type="submit" name="submit_file" class="btn btn-primary mt-2">Upload File</button></form>{% endblock %}""",
-        'attendance_panel.html': """{% extends 'base.html' %}{% block content %}<h3>Attendance — {{ cl.name }} — {{ date }}</h3><form method="post"><table class="table"><thead><tr><th>Name</th><th>Present</th></tr></thead><tbody>{% for s in cl.students %}<tr><td>{{ s.name }}</td><td><input type="checkbox" name="present_{{ s.id }}" value="1" class="form-check-input"></td></tr>{% endfor %}</tbody></table><button class="btn btn-success">Save Attendance</button></form>{% endblock %}""",
-        'class_report.html': """{% extends 'base.html' %}{% block content %}<h3>Attendance Report for {{ cl.name }}</h3><p>Total attendance days recorded: <strong>{{ report.total_days }}</strong></p><a class="btn btn-success mb-3" href="{{ url_for('export_class_report', class_id=cl.id) }}">Export Full Report (CSV)</a><table class="table table-striped"><thead><tr><th>Student Name</th><th>Enrollment No.</th><th>Days Attended</th><th>Attendance %%</th></tr></thead><tbody>{% for student_stat in report.student_stats %}<tr><td>{{ student_stat.name }}</td><td>{{ student_stat.enrollment_no or 'N/A' }}</td><td>{{ student_stat.days_attended }}</td><td>{{ "%.2f"|format(student_stat.percentage) }}%%</td></tr>{% else %}<tr><td colspan="4" class="text-center">No attendance records found for this class.</td></tr>{% endfor %}</tbody></table>{% endblock %}"""
-    }
-    for fname, content in files.items():
-        path = os.path.join(BASE_DIR, 'templates', fname)
-        if not os.path.exists(path):
-            with open(path, 'w', encoding='utf-8') as f: f.write(content)
-
 # --- App Initialization Block ---
 with app.app_context():
-    ensure_templates()
     db.create_all()
     if not User.query.filter_by(email='admin@example.com').first():
         print("Creating default admin user...")
@@ -146,14 +110,8 @@ with app.app_context():
         admin.set_password("admin123")
         db.session.add(admin)
         db.session.commit()
-        print("--- Default Admin Credentials ---")
-        print("  Email: admin@example.com")
-        print("  Password: admin123")
-        print("---------------------------------")
 
-# ----------------------
-# Auth & Registration Routes
-# ----------------------
+# --- All Routes ---
 @app.before_request
 def check_force_credential_change():
     if (current_user.is_authenticated and
@@ -237,9 +195,6 @@ def register_teacher():
     departments = Department.query.filter_by(college_id=current_user.college_id).all()
     return render_template('register_teacher.html', departments=departments)
 
-# ----------------------
-# Main App Routes
-# ----------------------
 @app.route('/')
 @login_required
 def index():
@@ -313,7 +268,7 @@ def create_class(department_id):
 def manage_class(class_id):
     cl = db.session.get(ClassRoom, class_id)
     if current_user.college_id != cl.department.college_id: abort(403)
-    return render_template('manage_class.html', cl=cl)
+    return render_template('manage_class.html', cl=cl, today=date.today().isoformat())
 
 @app.route('/class/<int:class_id>/students/add', methods=['GET', 'POST'])
 @login_required
@@ -379,7 +334,14 @@ def delete_student(student_id):
 def attendance_panel(class_id):
     cl = db.session.get(ClassRoom, class_id)
     if current_user.college_id != cl.department.college_id: abort(403)
-    attendance_date = date.today()
+    
+    date_str = request.args.get('date', date.today().isoformat())
+    try:
+        attendance_date = date.fromisoformat(date_str)
+    except ValueError:
+        flash('Invalid date format.', 'danger')
+        return redirect(url_for('manage_class', class_id=class_id))
+
     if request.method == 'POST':
         for s in cl.students:
             status = 'present' if request.form.get(f'present_{s.id}') else 'absent'
@@ -387,9 +349,16 @@ def attendance_panel(class_id):
             if existing: existing.status = status
             else: db.session.add(Attendance(student_id=s.id, date=attendance_date, status=status))
         db.session.commit()
-        flash('Attendance saved for today!', 'success')
+        flash(f'Attendance for {attendance_date.isoformat()} saved successfully!', 'success')
         return redirect(url_for('manage_class', class_id=class_id))
-    return render_template('attendance_panel.html', cl=cl, date=attendance_date.isoformat())
+
+    students_with_status = []
+    for student in cl.students:
+        record = Attendance.query.filter_by(student_id=student.id, date=attendance_date).first()
+        is_present = record and record.status == 'present'
+        students_with_status.append((student, is_present))
+        
+    return render_template('attendance_panel.html', cl=cl, date=attendance_date.isoformat(), students_with_status=students_with_status)
 
 # --- Reporting Routes ---
 def calculate_class_report(class_id):
@@ -441,11 +410,13 @@ def export_class_report(class_id):
         download_name=f'attendance_report_{cl.name}.csv'
     )
     
-# ----------------------
-# Run (for local development only)
-# ----------------------
+# --- Run (for local development and executable) ---
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:5000")
+
 if __name__ == '__main__':
-    app.run(debug=True)
-
-
+    if getattr(sys, 'frozen', False):
+        Timer(1, open_browser).start()
+    
+    app.run(host='0.0.0.0', port=5000)
 
