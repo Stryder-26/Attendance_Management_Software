@@ -1,0 +1,340 @@
+{#
+  manage_class.html — UPDATED with biometric registration status + dark theme
+  Drop this in /templates/manage_class.html replacing the existing one.
+  Adds:
+    - ✅/❌ biometric badge per student
+    - "Complete Profile" button linking to register-biometric
+    - Dark premium theme matching PPT palette
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{{ cl.name }} — AMS Portal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"/>
+<style>
+:root{
+  --bg:#0A0E1A; --card:#111827; --navy:#1A2744;
+  --blue:#3B82F6; --cyan:#06B6D4; --purple:#8B5CF6;
+  --green:#10B981; --orange:#F59E0B; --red:#EF4444;
+  --lgray:#CBD5E1; --mgray:#64748B; --border:#243558;
+}
+*{box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--lgray);
+  font-family:'Segoe UI',Calibri,system-ui,sans-serif;font-size:14px;margin:0;padding:0;}
+
+.topbar{
+  background:#060A14;border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.brand{font-size:16px;font-weight:800;color:var(--cyan);letter-spacing:1px;}
+.topbar a{color:var(--blue);text-decoration:none;font-size:12px;}
+.topbar a:hover{color:var(--cyan);}
+
+.page-wrap{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+
+/* Page header */
+.page-header{
+  background:linear-gradient(135deg,#0D1F3C,#111827);
+  border:1px solid var(--border);border-radius:14px;
+  padding:24px 28px;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+  position:relative;overflow:hidden;
+}
+.page-header::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:4px;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+}
+.page-title{font-size:22px;font-weight:900;color:#fff;}
+.page-sub  {font-size:12px;color:var(--mgray);margin-top:4px;}
+
+/* Alert flash */
+.flash-msg{
+  border-radius:8px;padding:12px 18px;margin-bottom:16px;font-size:13px;
+  border:1px solid;
+}
+.flash-success{background:rgba(16,185,129,.08);border-color:var(--green);color:var(--green);}
+.flash-danger {background:rgba(239,68,68,.08);  border-color:var(--red);  color:var(--red);}
+.flash-warning{background:rgba(245,158,11,.08); border-color:var(--orange);color:var(--orange);}
+.flash-info   {background:rgba(6,182,212,.08);  border-color:var(--cyan); color:var(--cyan);}
+
+/* Action buttons */
+.btn-a{
+  padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;
+  border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px;
+  transition:all .18s;
+}
+.btn-blue  {background:var(--blue);  color:#fff;}
+.btn-blue:hover  {background:#5596ff;color:#fff;}
+.btn-cyan  {background:var(--cyan);  color:#fff;}
+.btn-cyan:hover  {background:#08d4f0;color:#fff;}
+.btn-ghost {background:transparent;color:var(--lgray);border:1px solid var(--border);}
+.btn-ghost:hover {background:var(--navy);color:#fff;}
+.btn-red   {background:var(--red);   color:#fff;}
+.btn-red:hover   {background:#f76060;color:#fff;}
+.btn-green {background:var(--green); color:#fff;}
+
+/* Attendance date picker card */
+.date-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:20px 24px;margin-bottom:20px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.date-card label{font-size:12px;font-weight:700;color:var(--mgray);}
+.date-input{
+  background:var(--navy);border:1px solid var(--border);
+  color:var(--lgray);border-radius:8px;padding:8px 14px;font-size:13px;
+  flex:1;min-width:180px;max-width:250px;
+}
+.date-input:focus{outline:none;border-color:var(--cyan);}
+
+/* Student table */
+.students-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  margin-bottom:20px;
+}
+.students-card-header{
+  padding:14px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+.students-card-title{font-size:14px;font-weight:800;color:#fff;}
+.student-count{
+  font-size:11px;background:var(--navy);border:1px solid var(--border);
+  padding:3px 12px;border-radius:999px;color:var(--lgray);
+}
+
+table{width:100%;border-collapse:collapse;}
+th{
+  background:#0D1F3C;color:var(--mgray);font-size:11px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
+  padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);
+}
+td{
+  padding:13px 16px;border-bottom:1px solid #1A2744;
+  vertical-align:middle;font-size:13px;
+}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+/* Bio badge */
+.bio-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700;
+}
+.bio-complete{background:rgba(16,185,129,.12);color:var(--green);border:1px solid var(--green);}
+.bio-partial {background:rgba(245,158,11,.12); color:var(--orange);border:1px solid var(--orange);}
+.bio-none    {background:rgba(100,116,139,.1); color:var(--mgray); border:1px solid var(--border);}
+
+/* Empty state */
+.empty-state{
+  padding:48px 24px;text-align:center;color:var(--mgray);
+}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px;}
+.empty-state p{font-size:14px;}
+
+/* Stats row */
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;
+}
+.stat-mini{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;text-align:center;border-top:3px solid var(--accent,var(--cyan));
+}
+.stat-num {font-size:24px;font-weight:900;color:var(--accent,var(--cyan));}
+.stat-lbl {font-size:11px;color:var(--mgray);margin-top:3px;}
+
+@media(max-width:700px){
+  .stats-row{grid-template-columns:1fr 1fr;}
+  th:nth-child(3),td:nth-child(3){display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">🧠 AMS Portal</div>
+  <div style="font-size:12px;color:var(--mgray);">
+    <a href="{{ url_for('index') }}">Home</a> ›
+    <span style="color:var(--lgray);">{{ cl.name }}</span>
+  </div>
+  <div style="font-size:12px;">
+    Welcome, <strong style="color:#fff;">{{ current_user.name }}</strong>
+    &nbsp;|&nbsp;
+    <a href="{{ url_for('logout') }}" style="color:var(--red);">Logout</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="flash-msg flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">🏫 {{ cl.name }}</div>
+      <div class="page-sub">
+        Teacher: <strong style="color:var(--lgray);">{{ cl.teacher.name if cl.teacher else 'Unassigned' }}</strong>
+        &nbsp;·&nbsp; {{ cl.students | length }} student(s)
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{{ url_for('add_student', class_id=cl.id) }}"    class="btn-a btn-blue">➕ Add Students</a>
+      <a href="{{ url_for('class_report', class_id=cl.id) }}"  class="btn-a btn-ghost">📊 View Report</a>
+      <a href="{{ url_for('class_ai_report', class_id=cl.id) }}" class="btn-a btn-ghost">🧠 AI Report</a>
+    </div>
+  </div>
+
+  <!-- Stats mini row -->
+  {% set total = cl.students | length %}
+  {% set face_reg = cl.students | selectattr('is_face_registered') | list | length %}
+  {% set fp_reg = cl.students | selectattr('is_fingerprint_registered') | list | length %}
+  {% set full_reg = cl.students | selectattr('is_fully_registered') | list | length %}
+  <div class="stats-row">
+    <div class="stat-mini" style="--accent:var(--blue);">
+      <div class="stat-num" style="color:var(--blue);">{{ total }}</div>
+      <div class="stat-lbl">Total Students</div>
+    </div>
+    <div class="stat-mini" style="--accent:var(--green);">
+      <div class="stat-num" style="color:var(--green);">{{ full_reg }}</div>
+      <div class="stat-lbl">Fully Registered</div>
+    </div>
+    <div class="stat-mini" style="--accent:var(--cyan);">
+      <div class="stat-num" style="color:var(--cyan);">{{ face_reg }}</div>
+      <div class="stat-lbl">Face Captured</div>
+    </div>
+    <div class="stat-mini" style="--accent:var(--orange);">
+      <div class="stat-num" style="color:var(--orange);">{{ total - full_reg }}</div>
+      <div class="stat-lbl">Pending Registration</div>
+    </div>
+  </div>
+
+  <!-- Attendance date picker -->
+  <div class="date-card">
+    <div style="flex-shrink:0;">
+      <label>📅 SELECT DATE FOR ATTENDANCE</label>
+    </div>
+    <input type="date" class="date-input" id="attendanceDate" value="{{ today }}"/>
+    <a id="openPanelBtn" href="{{ url_for('attendance_panel', class_id=cl.id, date=today) }}"
+       class="btn-a btn-cyan">Open Attendance Panel</a>
+  </div>
+
+  <!-- Students table -->
+  <div class="students-card">
+    <div class="students-card-header">
+      <div class="students-card-title">👥 Student List</div>
+      <span class="student-count">{{ cl.students | length }} students</span>
+    </div>
+
+    {% if cl.students %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Enrollment No.</th>
+          <th>Unique ID</th>
+          <th>Biometric Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in cl.students %}
+        <tr>
+          <td style="color:var(--mgray);font-size:12px;">{{ loop.index }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;
+                          border:1.5px solid var(--border);flex-shrink:0;
+                          background:var(--navy);display:flex;align-items:center;
+                          justify-content:center;font-size:14px;">
+                {% if student.face_image_b64 %}
+                  <img src="data:image/jpeg;base64,{{ student.face_image_b64 }}"
+                       style="width:34px;height:34px;object-fit:cover;border-radius:50%;"/>
+                {% else %}🎓{% endif %}
+              </div>
+              <div>
+                <div style="font-weight:700;color:#fff;">{{ student.name }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-family:'Courier New',monospace;color:var(--lgray);">
+            {{ student.enrollment_no or '—' }}
+          </td>
+          <td style="font-family:'Courier New',monospace;font-size:12px;color:var(--cyan);">
+            {{ student.unique_id or '—' }}
+          </td>
+          <td>
+            {% if student.is_fully_registered %}
+              <span class="bio-badge bio-complete">✅ Complete</span>
+            {% elif student.is_face_registered %}
+              <span class="bio-badge bio-partial">⚠ Face Only</span>
+            {% elif student.is_fingerprint_registered %}
+              <span class="bio-badge bio-partial">⚠ FP Only</span>
+            {% else %}
+              <span class="bio-badge bio-none">❌ Not Registered</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <!-- Profile/Register button -->
+              {% if student.is_fully_registered %}
+                <a href="{{ url_for('student_profile', student_id=student.id) }}"
+                   class="btn-a btn-ghost" style="font-size:11px;padding:6px 12px;">
+                  👤 Profile
+                </a>
+              {% else %}
+                <a href="{{ url_for('register_biometric', student_id=student.id) }}"
+                   class="btn-a btn-cyan" style="font-size:11px;padding:6px 12px;">
+                  {% if student.is_face_registered or student.is_fingerprint_registered %}
+                    ⚡ Complete Profile
+                  {% else %}
+                    📋 Register Profile
+                  {% endif %}
+                </a>
+              {% endif %}
+
+              <!-- Delete button -->
+              <form method="POST"
+                    action="{{ url_for('delete_student', student_id=student.id) }}"
+                    onsubmit="return confirm('Remove {{ student.name }}?')">
+                <button type="submit" class="btn-a btn-red" style="font-size:11px;padding:6px 12px;">
+                  🗑
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <p>No students added yet.</p>
+      <a href="{{ url_for('add_student', class_id=cl.id) }}" class="btn-a btn-blue" style="margin-top:12px;">
+        ➕ Add Students
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+</div><!-- /page-wrap -->
+
+<script>
+// Update attendance panel link when date changes
+const dateInput = document.getElementById('attendanceDate');
+const panelBtn  = document.getElementById('openPanelBtn');
+const baseUrl   = "{{ url_for('attendance_panel', class_id=cl.id) }}";
+dateInput.addEventListener('change', () => {
+  panelBtn.href = baseUrl + '?date=' + dateInput.value;
+});
+</script>
+</body>
+</html>

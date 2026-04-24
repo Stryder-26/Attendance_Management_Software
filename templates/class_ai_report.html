@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>AI Performance Analysis: {{ cl.name }}</h2>
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-left-info shadow mb-4">
+                <div class="card-body">
+                    <h5 class="text-info">Smart Recommendations</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for rec in report.recommendations %}
+                        <li class="list-group-item">{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-body text-center">
+                    <h5>Attendance Trend</h5>
+                    <h2 class="display-4 {{ 'text-success' if report.trend == 'improving' else 'text-danger' if report.trend == 'declining' else 'text-muted' }}">
+                        {{ report.trend | capitalize }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Day-of-Week Attendance Pattern</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <tr class="bg-light">
+                {% for day, pct in report.day_pattern.items() %}
+                <th>{{ day }}</th>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for day, pct in report.day_pattern.items() %}
+                <td>{{ pct }}%</td>
+                {% endfor %}
+            </tr>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('export_excel_report', class_id=cl.id) }}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Export AI-Enhanced Excel
+        </a>
+    </div>
+</div>
+{% endblock %}

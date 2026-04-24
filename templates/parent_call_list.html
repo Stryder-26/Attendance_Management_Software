@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="fas fa-phone-alt"></i> Parent Call List</h3>
+        <a href="{{ url_for('export_parent_call_list') }}" class="btn btn-outline-secondary">Download CSV</a>
+    </div>
+
+    <table class="table shadow">
+        <thead class="bg-primary text-white">
+            <tr>
+                <th>Student</th>
+                <th>Risk</th>
+                <th>Reason</th>
+                <th>Generated</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for call in calls %}
+            <tr class="{{ 'table-danger' if call.risk_level == 'high' else 'table-warning' if call.risk_level == 'moderate' }}">
+                <td>{{ call.student.name }} <br><small>{{ call.classroom.name }}</small></td>
+                <td><strong>{{ call.risk_level | upper }}</strong></td>
+                <td>{{ call.reason }}</td>
+                <td>{{ call.generated_on }}</td>
+                <td>
+                    <form action="{{ url_for('resolve_parent_call', call_id=call.id) }}" method="POST">
+                        <button class="btn btn-sm btn-success">Mark Resolved</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

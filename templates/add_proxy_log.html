@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card mx-auto shadow" style="max-width: 500px;">
+        <div class="card-header bg-dark text-white">Log Suspicious Activity</div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="form-group">
+                    <label>Select Student</label>
+                    <select name="student_id" class="form-control" required>
+                        {% for s in cl.students %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.enrollment_no or 'N/A' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason / Observation</label>
+                    <textarea name="reason" class="form-control" placeholder="e.g. Identity mismatch during scan" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger btn-block">Flag Incident</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

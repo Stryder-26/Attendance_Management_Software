@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Biometric Registration — {{ student.name }}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"/>
+<style>
+/* ── Dark Premium Theme (matching PPT palette) ─────────────────────────── */
+:root{
+  --bg:       #0A0E1A;
+  --card:     #111827;
+  --navy:     #1A2744;
+  --blue:     #3B82F6;
+  --cyan:     #06B6D4;
+  --purple:   #8B5CF6;
+  --green:    #10B981;
+  --orange:   #F59E0B;
+  --red:      #EF4444;
+  --lgray:    #CBD5E1;
+  --mgray:    #64748B;
+  --border:   #243558;
+  --success-glow: 0 0 20px rgba(16,185,129,.35);
+  --cyan-glow:    0 0 30px rgba(6,182,212,.3);
+  --red-glow:     0 0 20px rgba(239,68,68,.3);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--lgray);
+  font-family:'Segoe UI',Calibri,system-ui,sans-serif;font-size:14px;}
+
+/* ── Topbar ─────────────────────────────────────────────────────────────── */
+.topbar{
+  background:#060A14;border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.topbar .brand{font-size:16px;font-weight:800;color:var(--cyan);letter-spacing:1px;}
+.topbar .breadcrumb-wrap{font-size:12px;color:var(--mgray);}
+.topbar .breadcrumb-wrap a{color:var(--blue);text-decoration:none;}
+.topbar .breadcrumb-wrap a:hover{color:var(--cyan);}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.page-wrap{max-width:1100px;margin:0 auto;padding:32px 24px 60px;}
+
+/* ── Student ID card ─────────────────────────────────────────────────────── */
+.id-card{
+  background:linear-gradient(135deg,#0D1F3C,#111827);
+  border:1px solid var(--border);border-radius:14px;
+  padding:24px 28px;display:flex;align-items:center;gap:24px;
+  margin-bottom:28px;
+  box-shadow:0 4px 30px rgba(0,0,0,.5);
+}
+.id-avatar{
+  width:70px;height:70px;border-radius:50%;
+  border:2px solid var(--cyan);background:var(--navy);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;flex-shrink:0;
+  box-shadow:var(--cyan-glow);
+}
+.id-avatar img{width:70px;height:70px;border-radius:50%;object-fit:cover;}
+.id-info{flex:1;}
+.id-name{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;}
+.id-meta{font-size:12px;color:var(--mgray);display:flex;gap:20px;flex-wrap:wrap;}
+.id-meta span{display:flex;align-items:center;gap:6px;}
+.uid-badge{
+  background:var(--navy);border:1px solid var(--cyan);
+  color:var(--cyan);padding:4px 14px;border-radius:6px;
+  font-size:12px;font-weight:700;letter-spacing:1px;
+  font-family:'Courier New',monospace;
+}
+
+/* ── Progress strip ──────────────────────────────────────────────────────── */
+.progress-strip{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:18px 24px;
+  display:flex;gap:0;align-items:stretch;
+  margin-bottom:28px;overflow:hidden;
+}
+.prog-step{
+  flex:1;display:flex;align-items:center;gap:12px;
+  padding:0 16px;position:relative;
+}
+.prog-step:not(:last-child)::after{
+  content:'→';position:absolute;right:-8px;
+  color:var(--mgray);font-size:18px;z-index:2;
+}
+.prog-icon{
+  width:44px;height:44px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.prog-icon.done  {background:rgba(16,185,129,.15);border:1px solid var(--green);}
+.prog-icon.active{background:rgba(6,182,212,.15); border:1px solid var(--cyan);}
+.prog-icon.todo  {background:var(--navy);           border:1px solid var(--border);}
+.prog-label{font-size:12px;font-weight:700;}
+.prog-sub  {font-size:11px;color:var(--mgray);}
+.prog-check{
+  margin-left:auto;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;flex-shrink:0;
+}
+.prog-check.done  {background:var(--green);color:#fff;}
+.prog-check.active{background:var(--cyan); color:#fff;}
+.prog-check.todo  {background:var(--border);color:var(--mgray);}
+
+/* ── Section cards ───────────────────────────────────────────────────────── */
+.section-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:26px 28px;margin-bottom:22px;
+  position:relative;overflow:hidden;
+}
+.section-card::before{
+  content:'';position:absolute;top:0;left:0;width:4px;height:100%;
+  background:var(--accent,var(--cyan));
+}
+.section-header{
+  display:flex;align-items:center;gap:14px;margin-bottom:20px;
+}
+.section-icon{
+  width:42px;height:42px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+}
+.section-title{font-size:16px;font-weight:800;color:#fff;}
+.section-sub  {font-size:11px;color:var(--mgray);margin-top:2px;}
+
+/* ── Camera box ──────────────────────────────────────────────────────────── */
+.cam-wrap{
+  position:relative;background:#050810;
+  border-radius:10px;overflow:hidden;
+  border:2px solid var(--border);
+  aspect-ratio:4/3;max-height:320px;
+  display:flex;align-items:center;justify-content:center;
+}
+.cam-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+.cam-overlay{
+  position:absolute;inset:0;pointer-events:none;
+  border:2px solid var(--cyan);border-radius:10px;
+  opacity:.5;
+}
+.cam-guide{
+  position:absolute;
+  border:2px solid rgba(6,182,212,.6);border-radius:50%;
+  width:54%;padding-top:54%;top:50%;left:50%;
+  transform:translate(-50%,-54%);
+  pointer-events:none;
+}
+.cam-hint{
+  position:absolute;bottom:10px;left:0;right:0;text-align:center;
+  font-size:11px;color:var(--cyan);font-weight:600;
+}
+.cam-placeholder{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  color:var(--mgray);font-size:13px;
+}
+.cam-placeholder span{font-size:40px;}
+
+/* ── Preview grid ────────────────────────────────────────────────────────── */
+.preview-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px;
+}
+.preview-cell{
+  aspect-ratio:1;background:#050810;border-radius:6px;overflow:hidden;
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:var(--mgray);position:relative;
+}
+.preview-cell img{width:100%;height:100%;object-fit:cover;}
+.preview-cell .frame-ok{
+  position:absolute;bottom:3px;right:3px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--green);font-size:8px;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+}
+
+/* ── Fingerprint visual ──────────────────────────────────────────────────── */
+.fp-visual{
+  width:140px;height:160px;margin:0 auto;
+  border:2px dashed var(--border);border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;background:#050810;
+  transition:border-color .3s,box-shadow .3s;
+}
+.fp-visual.scanning{
+  border-color:var(--cyan);
+  box-shadow:var(--cyan-glow);
+  animation:fp-pulse 1.5s ease-in-out infinite;
+}
+.fp-visual.done{
+  border-color:var(--green);
+  box-shadow:var(--success-glow);
+}
+.fp-visual .fp-icon{font-size:56px;line-height:1;}
+.fp-visual .fp-label{font-size:11px;color:var(--mgray);font-weight:600;}
+@keyframes fp-pulse{
+  0%,100%{box-shadow:0 0 10px rgba(6,182,212,.2);}
+  50%     {box-shadow:0 0 35px rgba(6,182,212,.6);}
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-bio{
+  padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;
+  border:none;cursor:pointer;transition:all .2s;display:inline-flex;
+  align-items:center;gap:8px;
+}
+.btn-cyan  {background:var(--cyan);  color:#fff;}
+.btn-cyan:hover  {background:#08d4f0;box-shadow:var(--cyan-glow);}
+.btn-green {background:var(--green); color:#fff;}
+.btn-green:hover {background:#12d99a;box-shadow:var(--success-glow);}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-purple:hover{background:#9f6fff;}
+.btn-red   {background:var(--red);   color:#fff;}
+.btn-red:hover   {background:#f76060;box-shadow:var(--red-glow);}
+.btn-ghost {background:transparent;color:var(--lgray);border:1px solid var(--border);}
+.btn-ghost:hover {background:var(--navy);}
+.btn-bio:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Status badges ───────────────────────────────────────────────────────── */
+.badge-reg{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;
+}
+.badge-complete{background:rgba(16,185,129,.15);color:var(--green);border:1px solid var(--green);}
+.badge-partial {background:rgba(245,158,11,.15); color:var(--orange);border:1px solid var(--orange);}
+.badge-none    {background:rgba(100,116,139,.15);color:var(--mgray); border:1px solid var(--border);}
+
+/* ── Feedback toast ──────────────────────────────────────────────────────── */
+#toast-wrap{
+  position:fixed;bottom:24px;right:24px;z-index:999;
+  display:flex;flex-direction:column;gap:10px;
+  pointer-events:none;
+}
+.toast-msg{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:14px 18px;min-width:260px;
+  font-size:13px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  animation:toast-in .3s ease;
+}
+.toast-msg.ok  {border-left:4px solid var(--green);}
+.toast-msg.err {border-left:4px solid var(--red);}
+.toast-msg.warn{border-left:4px solid var(--orange);}
+@keyframes toast-in{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+
+/* ── Progress bar ────────────────────────────────────────────────────────── */
+.capture-bar{
+  height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:10px;
+}
+.capture-bar-fill{
+  height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));
+  border-radius:3px;transition:width .3s;
+}
+
+/* ── Live EAR indicator ──────────────────────────────────────────────────── */
+.ear-strip{
+  background:var(--navy);border-radius:8px;padding:8px 14px;
+  display:flex;align-items:center;gap:10px;margin-top:8px;
+}
+.ear-dot{width:10px;height:10px;border-radius:50%;background:var(--mgray);flex-shrink:0;}
+.ear-dot.blink{background:var(--green);box-shadow:0 0 8px var(--green);}
+.ear-label{font-size:11px;color:var(--mgray);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .page-wrap{padding:16px 12px 40px;}
+  .id-card{flex-direction:column;align-items:flex-start;}
+  .progress-strip{flex-direction:column;gap:10px;}
+  .prog-step::after{display:none;}
+  .preview-grid{grid-template-columns:repeat(5,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="brand">🧠 AMS Portal</div>
+  <div class="breadcrumb-wrap">
+    <a href="{{ url_for('index') }}">Home</a> ›
+    <a href="{{ url_for('manage_class', class_id=cl.id) }}">{{ cl.name }}</a> ›
+    <span style="color:var(--lgray)">Biometric Registration</span>
+  </div>
+  <div style="font-size:12px;color:var(--mgray);">
+    Welcome, <strong style="color:var(--white)">{{ current_user.name }}</strong>
+    &nbsp;|&nbsp;
+    <a href="{{ url_for('logout') }}" style="color:var(--red);text-decoration:none;">Logout</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div style="background:var(--navy);border:1px solid {% if cat=='success' %}var(--green){% elif cat=='danger' %}var(--red){% else %}var(--orange){% endif %};
+                border-radius:8px;padding:12px 18px;margin-bottom:16px;font-size:13px;">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Student ID Card -->
+  <div class="id-card">
+    <div class="id-avatar" id="avatarWrap">
+      {% if student.face_image_b64 %}
+        <img src="data:image/jpeg;base64,{{ student.face_image_b64 }}" id="avatarImg" alt="face"/>
+      {% else %}
+        <span id="avatarEmoji">🎓</span>
+      {% endif %}
+    </div>
+    <div class="id-info">
+      <div class="id-name">{{ student.name }}</div>
+      <div class="id-meta">
+        <span>📋 Enrollment: <strong style="color:var(--white)">{{ student.enrollment_no or '—' }}</strong></span>
+        <span>🏫 Class: <strong style="color:var(--white)">{{ cl.name }}</strong></span>
+        <span>🔑 Unique ID: <code class="uid-badge">{{ student.unique_id or 'Generating…' }}</code></span>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      {% if student.is_fully_registered %}
+        <span class="badge-reg badge-complete">✅ Fully Registered</span>
+      {% elif student.is_face_registered or student.is_fingerprint_registered %}
+        <span class="badge-reg badge-partial">⚠ Partially Registered</span>
+      {% else %}
+        <span class="badge-reg badge-none">❌ Not Registered</span>
+      {% endif %}
+      <div style="margin-top:10px;">
+        <form method="POST" action="{{ url_for('reset_biometric', student_id=student.id) }}"
+              onsubmit="return confirm('Reset all biometric data for this student?')">
+          <button type="submit" class="btn-bio btn-ghost" style="font-size:11px;padding:6px 14px;">
+            🔄 Reset Biometrics
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Strip -->
+  <div class="progress-strip">
+    <div class="prog-step">
+      <div class="prog-icon done">🎓</div>
+      <div>
+        <div class="prog-label" style="color:var(--green)">Student Added</div>
+        <div class="prog-sub">Enrollment complete</div>
+      </div>
+      <div class="prog-check done">✓</div>
+    </div>
+    <div class="prog-step">
+      <div class="prog-icon {{ 'done' if student.is_face_registered else 'active' }}">📸</div>
+      <div>
+        <div class="prog-label" style="color:{{ 'var(--green)' if student.is_face_registered else 'var(--cyan)' }}">
+          Face Registration
+        </div>
+        <div class="prog-sub">5–10 frames + liveness</div>
+      </div>
+      <div class="prog-check {{ 'done' if student.is_face_registered else 'active' }}">
+        {{ '✓' if student.is_face_registered else '→' }}
+      </div>
+    </div>
+    <div class="prog-step">
+      <div class="prog-icon {{ 'done' if student.is_fingerprint_registered else ('active' if student.is_face_registered else 'todo') }}">🖐</div>
+      <div>
+        <div class="prog-label" style="color:{{ 'var(--green)' if student.is_fingerprint_registered else ('var(--cyan)' if student.is_face_registered else 'var(--mgray)') }}">
+          Fingerprint
+        </div>
+        <div class="prog-sub">Template + encrypt</div>
+      </div>
+      <div class="prog-check {{ 'done' if student.is_fingerprint_registered else ('active' if student.is_face_registered else 'todo') }}">
+        {{ '✓' if student.is_fingerprint_registered else ('→' if student.is_face_registered else '○') }}
+      </div>
+    </div>
+    <div class="prog-step">
+      <div class="prog-icon {{ 'done' if student.is_fully_registered else 'todo' }}">🚀</div>
+      <div>
+        <div class="prog-label" style="color:{{ 'var(--green)' if student.is_fully_registered else 'var(--mgray)' }}">
+          Ready for Attendance
+        </div>
+        <div class="prog-sub">Biometric auth enabled</div>
+      </div>
+      <div class="prog-check {{ 'done' if student.is_fully_registered else 'todo' }}">
+        {{ '✓' if student.is_fully_registered else '○' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ── FACE REGISTRATION ─────────────────────────────────────────────── -->
+    <div class="col-lg-7">
+      <div class="section-card" style="--accent:var(--cyan)">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(6,182,212,.15);border:1px solid var(--cyan);">📸</div>
+          <div>
+            <div class="section-title">Face Registration</div>
+            <div class="section-sub">OpenCV · face_recognition · MediaPipe EAR liveness</div>
+          </div>
+          {% if student.is_face_registered %}
+          <span class="badge-reg badge-complete ms-auto">✅ Registered</span>
+          {% endif %}
+        </div>
+
+        <!-- Camera -->
+        <div class="cam-wrap" id="camWrap">
+          <div class="cam-placeholder" id="camPlaceholder">
+            <span>📷</span>
+            <div>Camera not started</div>
+            <div style="font-size:11px;">Click "Start Camera" to begin</div>
+          </div>
+          <video id="video" autoplay playsinline style="display:none;"></video>
+          <canvas id="canvas" style="display:none;"></canvas>
+          <div class="cam-overlay" style="display:none;" id="camOverlay"></div>
+          <div class="cam-guide" style="display:none;" id="camGuide"></div>
+          <div class="cam-hint" style="display:none;" id="camHint">Position face inside the circle</div>
+        </div>
+
+        <!-- EAR indicator -->
+        <div class="ear-strip" id="earStrip" style="display:none;">
+          <div class="ear-dot" id="earDot"></div>
+          <div class="ear-label" id="earLabel">Waiting for blink detection…</div>
+        </div>
+
+        <!-- Capture progress -->
+        <div id="capProgWrap" style="display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:10px;">
+            <span style="color:var(--mgray);">Frames captured</span>
+            <span id="frameCount" style="color:var(--cyan);font-weight:700;">0 / 8</span>
+          </div>
+          <div class="capture-bar"><div class="capture-bar-fill" id="captureBarFill" style="width:0%"></div></div>
+        </div>
+
+        <!-- Preview grid -->
+        <div class="preview-grid" id="previewGrid">
+          {% for i in range(8) %}
+          <div class="preview-cell" id="cell{{i}}">📷</div>
+          {% endfor %}
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn-bio btn-cyan"   id="btnStartCam">▶ Start Camera</button>
+          <button class="btn-bio btn-green"  id="btnCapture" disabled>📸 Capture (8 frames)</button>
+          <button class="btn-bio btn-ghost"  id="btnStopCam" disabled>⏹ Stop</button>
+        </div>
+
+        <!-- Status result -->
+        <div id="faceResult" style="margin-top:14px;display:none;">
+          <div style="background:var(--navy);border-radius:8px;padding:14px 16px;border:1px solid var(--border);">
+            <div id="faceResultMsg" style="font-size:13px;"></div>
+            <div id="faceThumbWrap" style="margin-top:10px;display:none;">
+              <div style="font-size:11px;color:var(--mgray);margin-bottom:6px;">Captured Preview:</div>
+              <img id="faceThumb" src="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--green);"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FINGERPRINT REGISTRATION ──────────────────────────────────────── -->
+    <div class="col-lg-5">
+      <div class="section-card" style="--accent:var(--purple)">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(139,92,246,.15);border:1px solid var(--purple);">🖐</div>
+          <div>
+            <div class="section-title">Fingerprint Registration</div>
+            <div class="section-sub">USB Scanner SDK · HMAC encrypted</div>
+          </div>
+          {% if student.is_fingerprint_registered %}
+          <span class="badge-reg badge-complete ms-auto">✅ Registered</span>
+          {% endif %}
+        </div>
+
+        <!-- Fingerprint visual -->
+        <div class="fp-visual" id="fpVisual">
+          {% if student.is_fingerprint_registered %}
+            <div class="fp-icon">🖐</div>
+            <div class="fp-label" style="color:var(--green);">✅ Template Stored</div>
+          {% else %}
+            <div class="fp-icon">🖐</div>
+            <div class="fp-label">Place finger on scanner</div>
+          {% endif %}
+        </div>
+
+        <!-- Info -->
+        <div style="margin:16px 0;background:var(--navy);border-radius:8px;padding:12px 14px;border:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px;">HOW IT WORKS</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;gap:8px;font-size:12px;"><span style="color:var(--purple);">①</span> USB scanner captures raw minutiae template</div>
+            <div style="display:flex;gap:8px;font-size:12px;"><span style="color:var(--purple);">②</span> Template is HMAC-signed with 256-bit secret</div>
+            <div style="display:flex;gap:8px;font-size:12px;"><span style="color:var(--purple);">③</span> Encrypted blob stored in database (BLOB)</div>
+            <div style="display:flex;gap:8px;font-size:12px;"><span style="color:var(--purple);">④</span> Raw biometric never stored — tamper-proof</div>
+          </div>
+        </div>
+
+        <!-- Simulate (when no scanner) -->
+        <div style="background:#0D1F3C;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+          <div style="font-size:11px;color:var(--mgray);margin-bottom:8px;">
+            🔌 No scanner detected? Use simulation for demo/testing:
+          </div>
+          <button class="btn-bio btn-ghost" id="btnSimFP" style="width:100%;justify-content:center;">
+            🔬 Simulate Fingerprint Scan
+          </button>
+        </div>
+
+        <!-- SDK input (real scanner) -->
+        <div>
+          <div style="font-size:11px;color:var(--mgray);margin-bottom:6px;">Or paste raw template (Base64) from scanner SDK:</div>
+          <textarea id="fpTemplateInput" rows="3" placeholder="Paste Base64 fingerprint template here…"
+            style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;
+                   padding:10px;color:var(--lgray);font-family:'Courier New',monospace;font-size:11px;resize:none;"></textarea>
+          <button class="btn-bio btn-purple" id="btnRegFP" style="width:100%;justify-content:center;margin-top:8px;">
+            🖐 Register Fingerprint Template
+          </button>
+        </div>
+
+        <!-- FP result -->
+        <div id="fpResult" style="margin-top:14px;display:none;">
+          <div style="background:var(--navy);border-radius:8px;padding:12px 14px;border:1px solid var(--border);">
+            <div id="fpResultMsg" style="font-size:13px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Complete badge -->
+      <div id="completeBanner" style="display:{{ 'block' if student.is_fully_registered else 'none' }};">
+        <div style="background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(6,182,212,.1));
+                    border:1px solid var(--green);border-radius:12px;
+                    padding:20px;text-align:center;box-shadow:var(--success-glow);">
+          <div style="font-size:36px;margin-bottom:8px;">🎉</div>
+          <div style="font-size:16px;font-weight:800;color:var(--green);margin-bottom:4px;">
+            Biometric Registration Complete!
+          </div>
+          <div style="font-size:12px;color:var(--mgray);">
+            {{ student.name }} is ready for biometric attendance.
+          </div>
+          <a href="{{ url_for('manage_class', class_id=cl.id) }}"
+             class="btn-bio btn-green" style="margin-top:14px;display:inline-flex;text-decoration:none;">
+            ← Back to Class
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+
+  <!-- Bottom nav -->
+  <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;">
+    <a href="{{ url_for('manage_class', class_id=cl.id) }}" class="btn-bio btn-ghost" style="text-decoration:none;">
+      ← Back to Class
+    </a>
+    <a href="{{ url_for('student_profile', student_id=student.id) }}" class="btn-bio btn-ghost" style="text-decoration:none;">
+      👤 View Profile
+    </a>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<!-- Toast container -->
+<div id="toast-wrap"></div>
+
+<script>
+const STUDENT_ID = {{ student.id }};
+const FACE_REG   = {{ 'true' if student.is_face_registered else 'false' }};
+const FP_REG     = {{ 'true' if student.is_fingerprint_registered else 'false' }};
+
+// ── Toast helper ─────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const icons = {ok:'✅', err:'❌', warn:'⚠️'};
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
+// ── Camera vars ───────────────────────────────────────────────────────────────
+let stream      = null;
+let frames      = [];
+const TARGET    = 8;
+let capturing   = false;
+let captureTimer= null;
+
+const video       = document.getElementById('video');
+const canvas      = document.getElementById('canvas');
+const ctx         = canvas.getContext('2d');
+const placeholder = document.getElementById('camPlaceholder');
+const camOverlay  = document.getElementById('camOverlay');
+const camGuide    = document.getElementById('camGuide');
+const camHint     = document.getElementById('camHint');
+const earStrip    = document.getElementById('earStrip');
+const earDot      = document.getElementById('earDot');
+const earLabel    = document.getElementById('earLabel');
+const capProgWrap = document.getElementById('capProgWrap');
+
+// ── Start camera ──────────────────────────────────────────────────────────────
+document.getElementById('btnStartCam').onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: 'user' }
+    });
+    video.srcObject = stream;
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    camOverlay.style.display = camGuide.style.display = camHint.style.display = 'block';
+    earStrip.style.display = capProgWrap.style.display = 'flex';
+    document.getElementById('btnStartCam').disabled = true;
+    document.getElementById('btnCapture').disabled  = false;
+    document.getElementById('btnStopCam').disabled  = false;
+    toast('Camera started — position face inside circle', 'ok');
+  } catch(e) {
+    toast('Camera access denied: ' + e.message, 'err');
+  }
+};
+
+// ── Stop camera ───────────────────────────────────────────────────────────────
+document.getElementById('btnStopCam').onclick = () => stopCam();
+function stopCam() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  video.style.display = 'none';
+  placeholder.style.display = 'flex';
+  camOverlay.style.display = camGuide.style.display = camHint.style.display = 'none';
+  earStrip.style.display = capProgWrap.style.display = 'none';
+  document.getElementById('btnStartCam').disabled = false;
+  document.getElementById('btnCapture').disabled  = true;
+  document.getElementById('btnStopCam').disabled  = true;
+  if (captureTimer) { clearInterval(captureTimer); captureTimer = null; }
+  capturing = false;
+}
+
+// ── Capture frames ────────────────────────────────────────────────────────────
+document.getElementById('btnCapture').onclick = () => {
+  if (capturing) return;
+  frames = [];
+  capturing = true;
+  document.getElementById('btnCapture').disabled = true;
+  // Clear preview grid
+  for (let i = 0; i < TARGET; i++) {
+    document.getElementById('cell' + i).innerHTML = '<span style="color:var(--mgray)">📷</span>';
+  }
+
+  let count = 0;
+  captureTimer = setInterval(() => {
+    if (count >= TARGET) {
+      clearInterval(captureTimer);
+      captureTimer = null;
+      capturing = false;
+      document.getElementById('btnCapture').disabled = false;
+      sendFrames();
+      return;
+    }
+    // Draw frame to canvas
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    ctx.drawImage(video, 0, 0);
+    const b64 = canvas.toDataURL('image/jpeg', 0.8);
+    frames.push(b64);
+
+    // Update preview
+    const cell = document.getElementById('cell' + count);
+    cell.innerHTML = `<img src="${b64}"/><span class="frame-ok">✓</span>`;
+
+    // Update bar
+    count++;
+    const pct = (count / TARGET * 100).toFixed(0);
+    document.getElementById('captureBarFill').style.width = pct + '%';
+    document.getElementById('frameCount').textContent     = count + ' / ' + TARGET;
+  }, 350); // capture a frame every 350ms
+};
+
+// ── Send frames to backend ────────────────────────────────────────────────────
+async function sendFrames() {
+  toast('Processing face encodings…', 'warn');
+  document.getElementById('faceResult').style.display = 'none';
+
+  const camHintEl = document.getElementById('camHint');
+  camHintEl.textContent = 'Processing…';
+
+  try {
+    const resp = await fetch(`/student/${STUDENT_ID}/capture-face`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ frames })
+    });
+    const data = await resp.json();
+
+    const resultDiv = document.getElementById('faceResult');
+    const msgDiv    = document.getElementById('faceResultMsg');
+    resultDiv.style.display = 'block';
+
+    if (data.ok) {
+      toast('✅ Face registered successfully!', 'ok');
+      msgDiv.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${data.message}</span>`;
+
+      // Blink indicator
+      if (data.blink_detected) {
+        earDot.classList.add('blink');
+        earLabel.textContent = '✅ Liveness check passed — blink detected';
+        earLabel.style.color = 'var(--green)';
+      } else {
+        earLabel.textContent = '⚠ Blink not detected — please re-capture and blink naturally';
+        earLabel.style.color = 'var(--orange)';
+      }
+
+      // Thumbnail
+      if (data.thumbnail) {
+        const tw = document.getElementById('faceThumbWrap');
+        const ti = document.getElementById('faceThumb');
+        ti.src = 'data:image/jpeg;base64,' + data.thumbnail;
+        tw.style.display = 'block';
+        // Update avatar
+        const aw = document.getElementById('avatarWrap');
+        aw.innerHTML = `<img src="data:image/jpeg;base64,${data.thumbnail}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;"/>`;
+      }
+
+      // Update progress badge
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      toast('Face capture failed: ' + data.message, 'err');
+      msgDiv.innerHTML = `<span style="color:var(--red);">❌ ${data.message}</span>`;
+    }
+  } catch(e) {
+    toast('Network error: ' + e.message, 'err');
+  }
+  camHintEl.textContent = 'Position face inside the circle';
+}
+
+// ── Fingerprint simulation ────────────────────────────────────────────────────
+document.getElementById('btnSimFP').onclick = async () => {
+  const fpv = document.getElementById('fpVisual');
+  fpv.classList.add('scanning');
+  fpv.querySelector('.fp-label').textContent = 'Scanning…';
+  toast('Simulating fingerprint scan…', 'warn');
+
+  await new Promise(r => setTimeout(r, 2000)); // simulate scan delay
+
+  try {
+    const resp = await fetch(`/student/${STUDENT_ID}/register-fingerprint`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ simulate: true })
+    });
+    const data = await resp.json();
+    fpv.classList.remove('scanning');
+
+    if (data.ok) {
+      fpv.classList.add('done');
+      fpv.innerHTML = '<div class="fp-icon">🖐</div><div class="fp-label" style="color:var(--green);">✅ Template Stored</div>';
+      const rd = document.getElementById('fpResult');
+      const rm = document.getElementById('fpResultMsg');
+      rd.style.display = 'block';
+      rm.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${data.message}</span>`;
+      toast('Fingerprint registered!', 'ok');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      fpv.querySelector('.fp-label').textContent = 'Error — retry';
+      toast('Fingerprint error: ' + data.message, 'err');
+    }
+  } catch(e) {
+    fpv.classList.remove('scanning');
+    toast('Network error: ' + e.message, 'err');
+  }
+};
+
+// ── Real fingerprint (paste template) ────────────────────────────────────────
+document.getElementById('btnRegFP').onclick = async () => {
+  const tmpl = document.getElementById('fpTemplateInput').value.trim();
+  if (!tmpl) { toast('Please paste a fingerprint template first.', 'warn'); return; }
+
+  const fpv = document.getElementById('fpVisual');
+  fpv.classList.add('scanning');
+  toast('Registering fingerprint template…', 'warn');
+
+  try {
+    const resp = await fetch(`/student/${STUDENT_ID}/register-fingerprint`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ template: tmpl })
+    });
+    const data = await resp.json();
+    fpv.classList.remove('scanning');
+
+    if (data.ok) {
+      fpv.classList.add('done');
+      fpv.innerHTML = '<div class="fp-icon">🖐</div><div class="fp-label" style="color:var(--green);">✅ Template Stored</div>';
+      toast('Fingerprint registered!', 'ok');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      toast('Error: ' + data.message, 'err');
+    }
+  } catch(e) {
+    fpv.classList.remove('scanning');
+    toast('Network error: ' + e.message, 'err');
+  }
+};
+</script>
+</body>
+</html>

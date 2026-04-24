@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Student Profile — {{ student.name }}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"/>
+<style>
+:root{
+  --bg:#0A0E1A; --card:#111827; --navy:#1A2744;
+  --blue:#3B82F6; --cyan:#06B6D4; --purple:#8B5CF6;
+  --green:#10B981; --orange:#F59E0B; --red:#EF4444;
+  --lgray:#CBD5E1; --mgray:#64748B; --border:#243558;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--lgray);
+  font-family:'Segoe UI',Calibri,system-ui,sans-serif;font-size:14px;}
+
+.topbar{background:#060A14;border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;}
+.topbar .brand{font-size:16px;font-weight:800;color:var(--cyan);letter-spacing:1px;}
+.topbar a{color:var(--blue);text-decoration:none;font-size:12px;}
+.topbar a:hover{color:var(--cyan);}
+
+.page-wrap{max-width:900px;margin:0 auto;padding:32px 24px 60px;}
+
+/* Hero profile card */
+.profile-hero{
+  background:linear-gradient(135deg,#0D1F3C 0%,#111827 100%);
+  border:1px solid var(--border);border-radius:16px;
+  padding:32px;margin-bottom:24px;
+  display:flex;gap:28px;align-items:center;
+  box-shadow:0 8px 40px rgba(0,0,0,.5);
+  position:relative;overflow:hidden;
+}
+.profile-hero::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:4px;
+  background:linear-gradient(90deg,var(--blue),var(--cyan),var(--purple));
+}
+.hero-avatar{
+  width:100px;height:100px;border-radius:50%;flex-shrink:0;
+  border:3px solid var(--cyan);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--navy);font-size:42px;
+  box-shadow:0 0 30px rgba(6,182,212,.35);
+}
+.hero-avatar img{width:100%;height:100%;object-fit:cover;}
+.hero-name{font-size:24px;font-weight:900;color:#fff;margin-bottom:6px;}
+.hero-uid{
+  font-family:'Courier New',monospace;font-size:13px;
+  color:var(--cyan);background:var(--navy);
+  border:1px solid var(--cyan);padding:4px 14px;border-radius:6px;
+  display:inline-block;letter-spacing:1px;margin-bottom:10px;
+}
+.hero-meta{display:flex;gap:20px;flex-wrap:wrap;}
+.hero-meta-item{font-size:12px;color:var(--mgray);display:flex;align-items:center;gap:6px;}
+.hero-meta-item strong{color:var(--lgray);}
+
+/* Status badge large */
+.status-badge-lg{
+  padding:10px 20px;border-radius:10px;font-size:14px;font-weight:800;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.status-complete{background:rgba(16,185,129,.15);color:var(--green);border:1.5px solid var(--green);}
+.status-partial {background:rgba(245,158,11,.15); color:var(--orange);border:1.5px solid var(--orange);}
+.status-none    {background:rgba(100,116,139,.15);color:var(--mgray); border:1.5px solid var(--border);}
+
+/* Info cards grid */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+
+.info-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;
+  position:relative;overflow:hidden;
+}
+.info-card::before{
+  content:'';position:absolute;top:0;left:0;width:4px;height:100%;
+  background:var(--accent,var(--cyan));
+}
+.info-card-label{
+  font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:14px;
+}
+.info-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 0;border-bottom:1px solid var(--border);
+}
+.info-row:last-child{border-bottom:none;}
+.info-key{font-size:12px;color:var(--mgray);}
+.info-val{font-size:13px;color:var(--lgray);font-weight:600;text-align:right;}
+
+/* Check indicator */
+.check-item{
+  display:flex;align-items:center;gap:12px;padding:12px 0;
+  border-bottom:1px solid var(--border);
+}
+.check-item:last-child{border-bottom:none;}
+.check-icon{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.check-icon.ok {background:rgba(16,185,129,.15);border:1px solid var(--green);}
+.check-icon.no {background:rgba(100,116,139,.1); border:1px solid var(--border);}
+.check-label{font-size:13px;font-weight:700;color:#fff;}
+.check-sub  {font-size:11px;color:var(--mgray);}
+
+/* Security info */
+.sec-item{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;
+}
+.sec-item:last-child{border-bottom:none;}
+.sec-item .icon{color:var(--purple);flex-shrink:0;margin-top:1px;}
+
+/* Action buttons */
+.btn-act{
+  padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;
+  border:none;cursor:pointer;transition:all .2s;text-decoration:none;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-act-cyan  {background:var(--cyan);  color:#fff;}
+.btn-act-cyan:hover{background:#08d4f0;color:#fff;}
+.btn-act-ghost {background:transparent;color:var(--lgray);border:1px solid var(--border);}
+.btn-act-ghost:hover{background:var(--navy);}
+
+@media(max-width:640px){
+  .info-grid{grid-template-columns:1fr;}
+  .profile-hero{flex-direction:column;text-align:center;}
+  .hero-meta{justify-content:center;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">🧠 AMS Portal</div>
+  <div style="font-size:12px;color:var(--mgray);">
+    <a href="{{ url_for('index') }}">Home</a> ›
+    <a href="{{ url_for('manage_class', class_id=cl.id) }}">{{ cl.name }}</a> ›
+    <span style="color:var(--lgray);">{{ student.name }}</span>
+  </div>
+  <div style="font-size:12px;color:var(--mgray);">
+    <a href="{{ url_for('logout') }}" style="color:var(--red);">Logout</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Hero -->
+  <div class="profile-hero">
+    <div class="hero-avatar">
+      {% if student.face_image_b64 %}
+        <img src="data:image/jpeg;base64,{{ student.face_image_b64 }}" alt="face"/>
+      {% else %}
+        🎓
+      {% endif %}
+    </div>
+    <div style="flex:1;">
+      <div class="hero-name">{{ student.name }}</div>
+      <div class="hero-uid">{{ student.unique_id or 'ID not generated yet' }}</div>
+      <div class="hero-meta">
+        <div class="hero-meta-item">📋 Enrollment <strong>{{ student.enrollment_no or '—' }}</strong></div>
+        <div class="hero-meta-item">🏫 Class <strong>{{ cl.name }}</strong></div>
+        <div class="hero-meta-item">🏢 Dept <strong>{{ cl.department.name }}</strong></div>
+      </div>
+    </div>
+    <div>
+      {% if student.is_fully_registered %}
+        <div class="status-badge-lg status-complete">✅ Fully Registered</div>
+      {% elif student.is_face_registered or student.is_fingerprint_registered %}
+        <div class="status-badge-lg status-partial">⚠ Partially Registered</div>
+      {% else %}
+        <div class="status-badge-lg status-none">❌ Not Registered</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="info-grid">
+
+    <!-- Biometric status -->
+    <div class="info-card" style="--accent:var(--cyan)">
+      <div class="info-card-label" style="color:var(--cyan);">Biometric Status</div>
+
+      <div class="check-item">
+        <div class="check-icon {{ 'ok' if student.is_face_registered else 'no' }}">
+          {{ '📸' if student.is_face_registered else '📷' }}
+        </div>
+        <div>
+          <div class="check-label">Face Recognition</div>
+          <div class="check-sub">
+            {{ '✅ 128-D encoding registered' if student.is_face_registered else '❌ Not captured yet' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon {{ 'ok' if student.is_fingerprint_registered else 'no' }}">
+          🖐
+        </div>
+        <div>
+          <div class="check-label">Fingerprint Template</div>
+          <div class="check-sub">
+            {{ '✅ Template stored (HMAC-encrypted)' if student.is_fingerprint_registered else '❌ Not registered yet' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon {{ 'ok' if student.is_fully_registered else 'no' }}">
+          🚀
+        </div>
+        <div>
+          <div class="check-label">Biometric Attendance</div>
+          <div class="check-sub">
+            {{ '✅ Ready for biometric attendance' if student.is_fully_registered else '⏳ Complete registration first' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student details -->
+    <div class="info-card" style="--accent:var(--blue)">
+      <div class="info-card-label" style="color:var(--blue);">Student Details</div>
+      <div class="info-row">
+        <span class="info-key">Full Name</span>
+        <span class="info-val">{{ student.name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Enrollment No.</span>
+        <span class="info-val">{{ student.enrollment_no or '—' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">System ID</span>
+        <span class="info-val">#{{ student.id }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Unique AMS ID</span>
+        <span class="info-val" style="font-family:'Courier New',monospace;color:var(--cyan);">
+          {{ student.unique_id or '—' }}
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Class</span>
+        <span class="info-val">{{ cl.name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Department</span>
+        <span class="info-val">{{ cl.department.name }}</span>
+      </div>
+    </div>
+
+    <!-- Security info -->
+    <div class="info-card" style="--accent:var(--purple)">
+      <div class="info-card-label" style="color:var(--purple);">Security &amp; Encryption</div>
+      <div class="sec-item">
+        <span class="icon">🔐</span>
+        <div>Face encoding stored as <strong>128-D NumPy array</strong>, pickled and HMAC-signed with SHA-256</div>
+      </div>
+      <div class="sec-item">
+        <span class="icon">🛡️</span>
+        <div>Fingerprint template stored as <strong>HMAC-tagged BLOB</strong> — raw biometric never persisted</div>
+      </div>
+      <div class="sec-item">
+        <span class="icon">👁️</span>
+        <div>Liveness detection via <strong>Eye Aspect Ratio (EAR)</strong> using MediaPipe face mesh</div>
+      </div>
+      <div class="sec-item">
+        <span class="icon">🔑</span>
+        <div>All access restricted to <strong>authenticated staff only</strong> via Flask-Login</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="info-card" style="--accent:var(--green)">
+      <div class="info-card-label" style="color:var(--green);">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+        <a href="{{ url_for('register_biometric', student_id=student.id) }}"
+           class="btn-act btn-act-cyan" style="justify-content:center;">
+          {% if student.is_fully_registered %}
+            🔄 Re-Register Biometrics
+          {% elif student.is_face_registered %}
+            🖐 Complete Fingerprint
+          {% else %}
+            📸 Start Registration
+          {% endif %}
+        </a>
+        <a href="{{ url_for('manage_class', class_id=cl.id) }}"
+           class="btn-act btn-act-ghost" style="justify-content:center;text-decoration:none;">
+          ← Back to Class
+        </a>
+        <a href="{{ url_for('class_report', class_id=cl.id) }}"
+           class="btn-act btn-act-ghost" style="justify-content:center;text-decoration:none;">
+          📊 View Attendance Report
+        </a>
+      </div>
+
+      <!-- Viva quote -->
+      <div style="margin-top:18px;background:#0D1F3C;border:1px solid var(--border);
+                  border-radius:8px;padding:12px 14px;">
+        <div style="font-size:10px;font-weight:700;color:var(--cyan);margin-bottom:6px;letter-spacing:1px;">
+          🎓 VIVA QUOTE
+        </div>
+        <div style="font-size:11.5px;color:var(--lgray);font-style:italic;line-height:1.6;">
+          "We implemented a two-step biometric enrollment system where each student first registers face encodings and fingerprint templates, which are later used for secure real-time attendance marking with liveness detection."
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /info-grid -->
+
+</div><!-- /page-wrap -->
+</body>
+</html>

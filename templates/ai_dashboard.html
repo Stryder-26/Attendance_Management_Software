@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-robot text-primary"></i> AI Insights Dashboard</h2>
+        {% if role in ['college_admin', 'admin'] %}
+        <form action="{{ url_for('refresh_call_list') }}" method="POST">
+            <button type="submit" class="btn btn-outline-primary"><i class="fas fa-sync"></i> Refresh Call List</button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if global_stats %}
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-light border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Students</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ global_stats.total_students }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Defaulters (<75%)</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ global_stats.defaulter_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">High Risk (<60%)</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ global_stats.high_risk_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            {% if role == 'teacher' %}
+                {% for report in ai_reports %}
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">{{ report.class_name }} - AI Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Trend:</strong> <span class="badge badge-{{ 'success' if report.trend == 'improving' else 'danger' if report.trend == 'declining' else 'info' }}">{{ report.trend | capitalize }}</span></p>
+                        <ul>
+                            {% for rec in report.recommendations %}
+                            <li>{{ rec }}</li>
+                            {% endfor %}
+                        </ul>
+                        <a href="{{ url_for('class_ai_report', class_id=loop.index) }}" class="btn btn-sm btn-primary">Full Class Analysis</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                {% for dept in dept_analyses %}
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3"><h5>Dept: {{ dept.dept_name }}</h5></div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <thead><tr><th>Class</th><th>Avg %</th><th>Defaulters</th><th>Status</th></tr></thead>
+                            <tbody>
+                                {% for cl in dept.classes %}
+                                <tr>
+                                    <td>{{ cl.class_name }}</td>
+                                    <td>{{ cl.avg_attendance }}%</td>
+                                    <td>{{ cl.defaulter_count }}</td>
+                                    <td>{% if cl.needs_attention %}<span class="badge badge-danger">Attention</span>{% else %}<span class="badge badge-success">Good</span>{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-danger text-white">Pending Parent Calls</div>
+                <div class="card-body">
+                    {% for call in parent_calls[:5] %}
+                    <small><strong>{{ call.student.name }}</strong> ({{ call.risk_level }})<br>{{ call.reason }}</small><hr>
+                    {% endfor %}
+                    <a href="{{ url_for('parent_call_list') }}" class="btn btn-sm btn-block btn-outline-danger">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
